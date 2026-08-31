@@ -1,4 +1,4 @@
--- MM2 MOBILE HELPER - FULL ESP SYSTEM WITH GUN ESP
+-- MM2 MOBILE HELPER - FULL ESP + AIMBOT SYSTEM
 pcall(function()
     local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
     
@@ -23,6 +23,8 @@ pcall(function()
     local Active_Tags = {}
     local Active_Auras = {}
     local Gun_Tag = nil
+    local UserInputService = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
 
     -- ROLE COLORS
     local RoleColors = {
@@ -45,6 +47,10 @@ pcall(function()
     local ShowUsernames = false
     local ShowGunESP = true
 
+    -- AIMBOT Settings
+    local SilentAimEnabled = false
+    local ShiftLockEnabled = false
+
     -- ========================================================
     -- UTILITY FUNCTIONS
     -- ========================================================
@@ -56,6 +62,45 @@ pcall(function()
         else
             return "Innocent"
         end
+    end
+
+    local function GetMurderer()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                if GetPlayerRole(player) == "Murderer" then
+                    return player
+                end
+            end
+        end
+        return nil
+    end
+
+    local function CanSeeTarget(targetPosition)
+        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            return false
+        end
+        
+        local camera = workspace.CurrentCamera
+        local rayOrigin = camera.CFrame.Position
+        local rayDirection = (targetPosition - rayOrigin).Unit * 1000
+        
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+        
+        local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+        
+        if rayResult then
+            local hitPart = rayResult.Instance
+            local hitCharacter = hitPart.Parent
+            
+            if hitCharacter and hitCharacter:FindFirstChild("Humanoid") then
+                return hitCharacter == GetMurderer().Character
+            end
+            return false
+        end
+        
+        return true
     end
 
     -- ========================================================
@@ -204,6 +249,70 @@ pcall(function()
     TrackGun()
 
     -- ========================================================
+    -- SILENT AIM
+    -- ========================================================
+    local function SilentAim()
+        task.spawn(function()
+            while task.wait() do
+                if not SilentAimEnabled then continue end
+                
+                local murderer = GetMurderer()
+                if not murderer or not murderer.Character then continue end
+                
+                local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+                if not murdererHRP then continue end
+                
+                -- Check line of sight
+                if not CanSeeTarget(murdererHRP.Position) then continue end
+                
+                local localChar = LocalPlayer.Character
+                if not localChar or not localChar:FindFirstChild("Humanoid") then continue end
+                
+                local gun = localChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")
+                if not gun then continue end
+                
+                -- Auto-aim: rotate character to face murderer
+                local direction = (murdererHRP.Position - localChar.HumanoidRootPart.Position).Unit
+                localChar.HumanoidRootPart.CFrame = CFrame.new(
+                    localChar.HumanoidRootPart.Position,
+                    localChar.HumanoidRootPart.Position + direction
+                )
+            end
+        end)
+    end
+
+    SilentAim()
+
+    -- ========================================================
+    -- SHIFT LOCK AIMBOT
+    -- ========================================================
+    local function ShiftLockAimbot()
+        RunService.RenderStepped:Connect(function()
+            if not ShiftLockEnabled then return end
+            
+            local isShiftPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+            if not isShiftPressed then return end
+            
+            local murderer = GetMurderer()
+            if not murderer or not murderer.Character then return end
+            
+            local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+            if not murdererHRP then return end
+            
+            local localChar = LocalPlayer.Character
+            if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+            
+            local camera = workspace.CurrentCamera
+            
+            -- Rotate camera to point at murderer
+            local targetCFrame = CFrame.new(camera.CFrame.Position, murdererHRP.Position)
+            camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.1)  -- Smooth follow
+        end)
+    end
+
+    ShiftLockAimbot()
+
+    -- ========================================================
     -- UI LAYOUT
     -- ========================================================
     
@@ -277,17 +386,48 @@ pcall(function()
         end
     })
 
+    -- ========================================================
     -- AIMBOT TAB
-    AimbotTab:CreateSection("Aimbot Settings")
+    -- ========================================================
+    AimbotTab:CreateSection("Silent Aim")
 
-    local AimbotEnabled = false
     AimbotTab:CreateToggle({
-        Name = "Enable Aimbot",
-        CurrentValue = AimbotEnabled,
+        Name = "Enable Silent Aim",
+        CurrentValue = SilentAimEnabled,
         Callback = function(Value)
-            AimbotEnabled = Value
+            SilentAimEnabled = Value
+            if Value then
+                Rayfield:Notify({
+                    Title = "Silent Aim",
+                    Content = "Tap to shoot - auto-locks on murderer",
+                    Duration = 2,
+                })
+            end
         end
     })
+
+    AimbotTab:CreateLabel("Redirects all shots to murderer")
+    AimbotTab:CreateLabel("Cannot shoot through walls/blocks")
+
+    AimbotTab:CreateSection("Shift Lock Aimbot")
+
+    AimbotTab:CreateToggle({
+        Name = "Enable Shift Lock",
+        CurrentValue = ShiftLockEnabled,
+        Callback = function(Value)
+            ShiftLockEnabled = Value
+            if Value then
+                Rayfield:Notify({
+                    Title = "Shift Lock",
+                    Content = "Hold SHIFT to lock camera on murderer",
+                    Duration = 2,
+                })
+            end
+        end
+    })
+
+    AimbotTab:CreateLabel("Hold LEFT SHIFT to activate")
+    AimbotTab:CreateLabel("Camera follows murderer smoothly")
 
     -- AUTO FARM TAB
     FarmTab:CreateSection("Farm Settings")
@@ -314,10 +454,10 @@ pcall(function()
     -- NOTIFICATION
     Rayfield:Notify({
         Title = "MM2 Mobile Helper",
-        Content = "ESP Ready! Murderer & Sheriff enabled + Gun ESP",
+        Content = "Ready! ESP + Aimbot loaded",
         Duration = 3,
     })
 
-    print("✓ MM2 Mobile Helper fully loaded with ESP & Gun ESP!")
+    print("✓ MM2 Mobile Helper fully loaded with ESP & Aimbot!")
 
 end)
