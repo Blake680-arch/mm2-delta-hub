@@ -1,27 +1,19 @@
--- MM2 MOBILE HELPER - ORION UI + MOBILE AIMBOT
+-- MM2 MOBILE HELPER - PURE ROBLOX UI (MOVABLE + COLLAPSIBLE)
 pcall(function()
-    local Orion = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-    
-    local Window = Orion:MakeWindow({
-        Name = "MM2 Mobile Helper",
-        HidePremium = false,
-        SaveConfig = false,
-        ConfigFolder = "OrionConfig"
-    })
-
     local LocalPlayer = game.Players.LocalPlayer
     local Active_Tags = {}
     local Active_Auras = {}
+    local Gun_Tag = nil
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
 
     -- ROLE COLORS
     local RoleColors = {
-        Murderer = Color3.fromRGB(255, 50, 50),      -- Bright Red
-        Sheriff = Color3.fromRGB(50, 150, 255),      -- Bright Blue
-        Innocent = Color3.fromRGB(100, 255, 100),    -- Bright Green
-        Hero = Color3.fromRGB(255, 255, 0),          -- Yellow
-        Guest = Color3.fromRGB(255, 200, 50)         -- Gold
+        Murderer = Color3.fromRGB(255, 50, 50),
+        Sheriff = Color3.fromRGB(50, 150, 255),
+        Innocent = Color3.fromRGB(100, 255, 100),
+        Hero = Color3.fromRGB(255, 255, 0),
+        Guest = Color3.fromRGB(255, 200, 50)
     }
 
     -- ESP Settings
@@ -41,7 +33,7 @@ pcall(function()
     local SilentAimEnabled = false
     local ShiftLockEnabled = false
 
-    print("[MM2] Starting with Orion UI...")
+    print("[MM2] Starting with movable UI...")
 
     -- ========================================================
     -- UTILITY FUNCTIONS
@@ -49,29 +41,19 @@ pcall(function()
     local function GetPlayerRole(player)
         if not player or not player.Character then return "Guest" end
         
-        -- Check for Knife (Murderer)
         if player.Backpack:FindFirstChild("Knife") or player.Character:FindFirstChild("Knife") then
             return "Murderer"
         end
         
-        -- Check for Gun (Sheriff or Hero)
         if player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun") then
-            -- If they're alive and have gun = Sheriff
             if player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                if not (player.Backpack:FindFirstChild("Knife") or player.Character:FindFirstChild("Knife")) then
+                    return "Hero"
+                end
                 return "Sheriff"
             end
         end
         
-        -- Check if Innocent has gun (Hero)
-        local hasGun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
-        if hasGun and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-            -- If not Murderer and has gun = Hero
-            if not (player.Backpack:FindFirstChild("Knife") or player.Character:FindFirstChild("Knife")) then
-                return "Hero"
-            end
-        end
-        
-        -- Default to Innocent
         return "Innocent"
     end
 
@@ -116,173 +98,303 @@ pcall(function()
     end
 
     -- ========================================================
-    -- CREATE TABS
+    -- CREATE GUI
     -- ========================================================
-    local VisualTab = Window:MakeTab({
-        Name = "Visual",
-        Icon = "rbxassetid://4483362458",
-        PremiumOnly = false
-    })
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "MM2Hub"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-    local AimbotTab = Window:MakeTab({
-        Name = "Aimbot",
-        Icon = "rbxassetid://4483345906",
-        PremiumOnly = false
-    })
+    -- Main Frame (Movable)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 300, 0, 400)
+    mainFrame.Position = UDim2.new(0, 20, 0, 100)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    mainFrame.Parent = screenGui
 
-    local MiscTab = Window:MakeTab({
-        Name = "Misc",
-        Icon = "rbxassetid://4483362752",
-        PremiumOnly = false
-    })
+    -- Dragging Setup
+    local dragging = false
+    local dragStart = nil
+    local dragPos = nil
 
-    -- ========================================================
-    -- VISUAL TAB - ESP
-    -- ========================================================
-    VisualTab:AddSection("ESP Target Selection")
-
-    VisualTab:AddToggle({
-        Name = "ESP Murderer (Red)",
-        Default = ESPRoles.Murderer,
-        Callback = function(Value)
-            ESPRoles.Murderer = Value
+    mainFrame.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            dragPos = mainFrame.Position
         end
-    })
+    end)
 
-    VisualTab:AddToggle({
-        Name = "ESP Sheriff (Blue)",
-        Default = ESPRoles.Sheriff,
-        Callback = function(Value)
-            ESPRoles.Sheriff = Value
+    mainFrame.InputEnded:Connect(function(input, gameProcessed)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
         end
-    })
+    end)
 
-    VisualTab:AddToggle({
-        Name = "ESP Innocent (Green)",
-        Default = ESPRoles.Innocent,
-        Callback = function(Value)
-            ESPRoles.Innocent = Value
+    UserInputService.InputChanged:Connect(function(input, gameProcessed)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(dragPos.X.Scale, dragPos.X.Offset + delta.X, dragPos.Y.Scale, dragPos.Y.Offset + delta.Y)
+            dragPos = mainFrame.Position
         end
-    })
+    end)
 
-    VisualTab:AddToggle({
-        Name = "ESP Hero (Yellow)",
-        Default = ESPRoles.Hero,
-        Callback = function(Value)
-            ESPRoles.Hero = Value
-        end
-    })
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
 
-    VisualTab:AddSection("ESP Display Options")
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -35, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 16
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "MM2 Mobile Helper"
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
 
-    VisualTab:AddToggle({
-        Name = "Show Role Nametags",
-        Default = ShowNameTag,
-        Callback = function(Value)
-            ShowNameTag = Value
-        end
-    })
+    -- Collapse/Expand Button
+    local collapseBtn = Instance.new("TextButton")
+    collapseBtn.Name = "CollapseBtn"
+    collapseBtn.Size = UDim2.new(0, 35, 1, 0)
+    collapseBtn.Position = UDim2.new(1, -35, 0, 0)
+    collapseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    collapseBtn.BorderSizePixel = 0
+    collapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    collapseBtn.TextSize = 14
+    collapseBtn.Font = Enum.Font.GothamBold
+    collapseBtn.Text = "-"
+    collapseBtn.Parent = titleBar
 
-    VisualTab:AddToggle({
-        Name = "Show Highlight Aura",
-        Default = ShowHighlight,
-        Callback = function(Value)
-            ShowHighlight = Value
-        end
-    })
+    local isCollapsed = false
 
-    VisualTab:AddToggle({
-        Name = "Show Gun ESP",
-        Default = ShowGunESP,
-        Callback = function(Value)
-            ShowGunESP = Value
-        end
-    })
-
-    -- ========================================================
-    -- AIMBOT TAB
-    -- ========================================================
-    AimbotTab:AddSection("Silent Aim")
-
-    AimbotTab:AddToggle({
-        Name = "Enable Silent Aim",
-        Default = SilentAimEnabled,
-        Callback = function(Value)
-            SilentAimEnabled = Value
-            Orion:MakeNotification({
-                Name = "Silent Aim",
-                Content = Value and "Tap to shoot - auto-locks on murderer" or "Silent Aim disabled",
-                Image = "rbxassetid://4483345906",
-                Time = 3
-            })
-        end
-    })
-
-    AimbotTab:AddLabel("Redirects all shots to murderer")
-    AimbotTab:AddLabel("Cannot shoot through walls/blocks")
-
-    AimbotTab:AddSection("Shift Lock (Top-Left Button)")
-
-    AimbotTab:AddToggle({
-        Name = "Enable Shift Lock",
-        Default = ShiftLockEnabled,
-        Callback = function(Value)
-            ShiftLockEnabled = Value
-            Orion:MakeNotification({
-                Name = "Shift Lock",
-                Content = Value and "Tap button at top-left to lock on murderer" or "Shift Lock disabled",
-                Image = "rbxassetid://4483345906",
-                Time = 3
-            })
-        end
-    })
-
-    AimbotTab:AddLabel("Tap top-left button to lock/unlock")
-    AimbotTab:AddLabel("Shoots with perfect accuracy")
-
-    -- ========================================================
-    -- MISC TAB
-    -- ========================================================
-    MiscTab:AddSection("Utilities")
-
-    MiscTab:AddButton({
-        Name = "Close GUI",
-        Callback = function()
-            Window:Close()
-        end
-    })
-
-    -- ========================================================
-    -- SHIFT LOCK BUTTON (Top-Left)
-    -- ========================================================
-    local ShiftLockButton = Instance.new("TextButton")
-    ShiftLockButton.Name = "ShiftLockButton"
-    ShiftLockButton.Size = UDim2.new(0, 80, 0, 40)
-    ShiftLockButton.Position = UDim2.new(0, 10, 0, 10)
-    ShiftLockButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
-    ShiftLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ShiftLockButton.TextSize = 12
-    ShiftLockButton.Font = Enum.Font.GothamBold
-    ShiftLockButton.BorderSizePixel = 2
-    ShiftLockButton.BorderColor3 = Color3.fromRGB(255, 100, 100)
-    ShiftLockButton.Text = "SL: OFF"
-    ShiftLockButton.Visible = false
-    ShiftLockButton.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-    local function UpdateShiftLockButton()
-        if ShiftLockEnabled then
-            ShiftLockButton.Visible = true
-            ShiftLockButton.Text = "SL: ON"
-            ShiftLockButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    collapseBtn.MouseButton1Click:Connect(function()
+        isCollapsed = not isCollapsed
+        if isCollapsed then
+            mainFrame.Size = UDim2.new(0, 300, 0, 35)
+            collapseBtn.Text = "+"
         else
-            ShiftLockButton.Visible = false
+            mainFrame.Size = UDim2.new(0, 300, 0, 400)
+            collapseBtn.Text = "-"
         end
+    end)
+
+    -- Scroll Frame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Size = UDim2.new(1, 0, 1, -35)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 35)
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700)
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+    scrollFrame.Parent = mainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Padding = UDim.new(0, 5)
+    UIListLayout.Parent = scrollFrame
+
+    local UIPadding = Instance.new("UIPadding")
+    UIPadding.PaddingLeft = UDim.new(0, 5)
+    UIPadding.PaddingRight = UDim.new(0, 5)
+    UIPadding.PaddingTop = UDim.new(0, 5)
+    UIPadding.Parent = scrollFrame
+
+    -- ========================================================
+    -- TAB SYSTEM
+    -- ========================================================
+    local currentTab = "Visual"
+    local tabContainers = {}
+
+    local function CreateTab(tabName)
+        local tabContainer = Instance.new("Frame")
+        tabContainer.Name = tabName .. "Tab"
+        tabContainer.Size = UDim2.new(1, -10, 0, 0)
+        tabContainer.BackgroundTransparency = 1
+        tabContainer.BorderSizePixel = 0
+        tabContainer.Visible = (tabName == "Visual")
+        tabContainer.Parent = scrollFrame
+
+        local tabLayout = Instance.new("UIListLayout")
+        tabLayout.Padding = UDim.new(0, 5)
+        tabLayout.Parent = tabContainer
+
+        tabContainers[tabName] = tabContainer
+        return tabContainer
     end
 
-    ShiftLockButton.MouseButton1Click:Connect(function()
-        ShiftLockEnabled = not ShiftLockEnabled
-        UpdateShiftLockButton()
+    -- Tab Buttons
+    local tabButtonsFrame = Instance.new("Frame")
+    tabButtonsFrame.Size = UDim2.new(1, -10, 0, 30)
+    tabButtonsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    tabButtonsFrame.BorderSizePixel = 1
+    tabButtonsFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    tabButtonsFrame.Parent = scrollFrame
+
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.Padding = UDim.new(0, 2)
+    tabLayout.Parent = tabButtonsFrame
+
+    local function CreateTabButton(tabName)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 95, 1, 0)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 12
+        btn.Font = Enum.Font.Gotham
+        btn.BorderSizePixel = 1
+        btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Text = tabName
+        btn.Parent = tabButtonsFrame
+
+        btn.MouseButton1Click:Connect(function()
+            for _, tab in pairs(tabContainers) do
+                tab.Visible = false
+            end
+            tabContainers[tabName].Visible = true
+            currentTab = tabName
+        end)
+
+        if tabName == "Visual" then
+            btn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        end
+
+        btn.MouseEnter:Connect(function()
+            btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        end)
+
+        btn.MouseLeave:Connect(function()
+            if currentTab == tabName then
+                btn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            end
+        end)
+    end
+
+    CreateTabButton("Visual")
+    CreateTabButton("Aimbot")
+    CreateTabButton("Misc")
+
+    local VisualTab = CreateTab("Visual")
+    local AimbotTab = CreateTab("Aimbot")
+    local MiscTab = CreateTab("Misc")
+
+    -- ========================================================
+    -- TOGGLE BUTTON CREATOR
+    -- ========================================================
+    local function CreateToggle(parent, name, defaultValue, callback)
+        local toggleBtn = Instance.new("TextButton")
+        toggleBtn.Name = name
+        toggleBtn.Size = UDim2.new(1, 0, 0, 30)
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleBtn.TextSize = 12
+        toggleBtn.Font = Enum.Font.Gotham
+        toggleBtn.BorderSizePixel = 1
+        toggleBtn.BorderColor3 = Color3.fromRGB(200, 200, 200)
+        toggleBtn.Parent = parent
+
+        local isEnabled = defaultValue
+        
+        local function UpdateButton()
+            toggleBtn.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(100, 0, 0)
+            toggleBtn.Text = (isEnabled and "✓ " or "✗ ") .. name
+            callback(isEnabled)
+        end
+
+        toggleBtn.MouseButton1Click:Connect(function()
+            isEnabled = not isEnabled
+            UpdateButton()
+        end)
+
+        toggleBtn.MouseEnter:Connect(function()
+            toggleBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+
+        toggleBtn.MouseLeave:Connect(function()
+            toggleBtn.BorderColor3 = Color3.fromRGB(200, 200, 200)
+        end)
+
+        UpdateButton()
+    end
+
+    -- ========================================================
+    -- SECTION HEADERS
+    -- ========================================================
+    local function CreateHeader(parent, text)
+        local header = Instance.new("TextLabel")
+        header.Size = UDim2.new(1, 0, 0, 25)
+        header.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        header.TextColor3 = Color3.fromRGB(255, 255, 255)
+        header.TextSize = 13
+        header.Font = Enum.Font.GothamBold
+        header.Text = "[ " .. text .. " ]"
+        header.BorderSizePixel = 1
+        header.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        header.Parent = parent
+    end
+
+    -- ========================================================
+    -- POPULATE TABS
+    -- ========================================================
+
+    -- VISUAL TAB
+    CreateHeader(VisualTab, "ESP Target Selection")
+    CreateToggle(VisualTab, "ESP Murderer", ESPRoles.Murderer, function(val) ESPRoles.Murderer = val end)
+    CreateToggle(VisualTab, "ESP Sheriff", ESPRoles.Sheriff, function(val) ESPRoles.Sheriff = val end)
+    CreateToggle(VisualTab, "ESP Innocent", ESPRoles.Innocent, function(val) ESPRoles.Innocent = val end)
+    CreateToggle(VisualTab, "ESP Hero", ESPRoles.Hero, function(val) ESPRoles.Hero = val end)
+
+    CreateHeader(VisualTab, "Display Options")
+    CreateToggle(VisualTab, "Show Nametags", ShowNameTag, function(val) ShowNameTag = val end)
+    CreateToggle(VisualTab, "Show Highlights", ShowHighlight, function(val) ShowHighlight = val end)
+    CreateToggle(VisualTab, "Show Gun ESP", ShowGunESP, function(val) ShowGunESP = val end)
+
+    -- AIMBOT TAB
+    CreateHeader(AimbotTab, "Silent Aim")
+    CreateToggle(AimbotTab, "Silent Aim", SilentAimEnabled, function(val) SilentAimEnabled = val end)
+
+    CreateHeader(AimbotTab, "Shift Lock")
+    CreateToggle(AimbotTab, "Shift Lock", ShiftLockEnabled, function(val) ShiftLockEnabled = val end)
+
+    -- MISC TAB
+    CreateHeader(MiscTab, "Utilities")
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(1, 0, 0, 30)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 12
+    closeBtn.Font = Enum.Font.Gotham
+    closeBtn.BorderSizePixel = 1
+    closeBtn.BorderColor3 = Color3.fromRGB(200, 200, 200)
+    closeBtn.Text = "Close GUI"
+    closeBtn.Parent = MiscTab
+
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
     end)
+
+    closeBtn.MouseEnter:Connect(function()
+        closeBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+
+    closeBtn.MouseLeave:Connect(function()
+        closeBtn.BorderColor3 = Color3.fromRGB(200, 200, 200)
+    end)
+
+    print("[MM2] GUI Created successfully!")
 
     -- ========================================================
     -- ESP RENDERING
@@ -371,40 +483,34 @@ pcall(function()
     game.Players.PlayerAdded:Connect(SetupPlayerESP)
 
     -- ========================================================
-    -- GUN ESP (Sheriff Gun Detection)
+    -- GUN ESP
     -- ========================================================
     task.spawn(function()
         while task.wait(1) do
             if not ShowGunESP then continue end
             
-            -- Search for gun in workspace
-            local gunFound = false
             for _, obj in pairs(workspace:GetChildren()) do
                 if obj:IsA("Model") and obj.Name:lower():find("gun") then
-                    gunFound = true
-                    if obj:FindFirstChild("Handle") then
-                        -- Create nametag if doesn't exist
-                        if not obj:FindFirstChild("GunESPTag") then
-                            local bbGui = Instance.new("BillboardGui")
-                            bbGui.Name = "GunESPTag"
-                            bbGui.Size = UDim2.new(0, 150, 0, 50)
-                            bbGui.Adornee = obj.Handle
-                            bbGui.AlwaysOnTop = true
-                            bbGui.MaxDistance = 300
-                            bbGui.StudsOffset = Vector3.new(0, 2, 0)
-                            
-                            local textLabel = Instance.new("TextLabel", bbGui)
-                            textLabel.Size = UDim2.new(1, 0, 1, 0)
-                            textLabel.BackgroundTransparency = 1
-                            textLabel.TextSize = 16
-                            textLabel.Font = Enum.Font.GothamBold
-                            textLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-                            textLabel.TextStrokeTransparency = 0.3
-                            textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                            textLabel.Text = "SHERIFF GUN"
-                            
-                            bbGui.Parent = obj.Handle
-                        end
+                    if obj:FindFirstChild("Handle") and not obj:FindFirstChild("GunESPTag") then
+                        local bbGui = Instance.new("BillboardGui")
+                        bbGui.Name = "GunESPTag"
+                        bbGui.Size = UDim2.new(0, 150, 0, 50)
+                        bbGui.Adornee = obj.Handle
+                        bbGui.AlwaysOnTop = true
+                        bbGui.MaxDistance = 300
+                        bbGui.StudsOffset = Vector3.new(0, 2, 0)
+                        
+                        local textLabel = Instance.new("TextLabel", bbGui)
+                        textLabel.Size = UDim2.new(1, 0, 1, 0)
+                        textLabel.BackgroundTransparency = 1
+                        textLabel.TextSize = 16
+                        textLabel.Font = Enum.Font.GothamBold
+                        textLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+                        textLabel.TextStrokeTransparency = 0.3
+                        textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                        textLabel.Text = "SHERIFF GUN"
+                        
+                        bbGui.Parent = obj.Handle
                     end
                 end
             end
@@ -432,7 +538,6 @@ pcall(function()
             local gun = localChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")
             if not gun then continue end
             
-            -- Auto-aim: rotate character to face murderer
             local direction = (murdererHRP.Position - localChar.HumanoidRootPart.Position).Unit
             localChar.HumanoidRootPart.CFrame = CFrame.new(
                 localChar.HumanoidRootPart.Position,
@@ -457,26 +562,10 @@ pcall(function()
         if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
         
         local camera = workspace.CurrentCamera
-        
-        -- Rotate camera to point at murderer
         local targetCFrame = CFrame.new(camera.CFrame.Position, murdererHRP.Position)
         camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.1)
     end)
 
-    -- Update Shift Lock button visibility
-    task.spawn(function()
-        while task.wait(0.1) do
-            UpdateShiftLockButton()
-        end
-    end)
-
-    Orion:MakeNotification({
-        Name = "MM2 Mobile Helper",
-        Content = "Loaded with Orion UI!",
-        Image = "rbxassetid://4483362458",
-        Time = 3
-    })
-
-    print("✓ MM2 Mobile Helper loaded with Orion!")
+    print("✓ MM2 Mobile Helper loaded successfully!")
 
 end)
