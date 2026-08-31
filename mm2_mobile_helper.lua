@@ -1,4 +1,4 @@
--- MM2 MOBILE HELPER - FULL ESP SYSTEM
+-- MM2 MOBILE HELPER - FULL ESP SYSTEM WITH GUN ESP
 pcall(function()
     local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
     
@@ -22,6 +22,7 @@ pcall(function()
     local LocalPlayer = game.Players.LocalPlayer
     local Active_Tags = {}
     local Active_Auras = {}
+    local Gun_Tag = nil
 
     -- ROLE COLORS
     local RoleColors = {
@@ -42,6 +43,7 @@ pcall(function()
     local ShowNameTag = true
     local ShowHighlight = true
     local ShowUsernames = false
+    local ShowGunESP = true
 
     -- ========================================================
     -- UTILITY FUNCTIONS
@@ -52,7 +54,6 @@ pcall(function()
         elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
             return "Sheriff"
         else
-            -- Check if player is a guest (optional - you can customize this logic)
             return "Innocent"
         end
     end
@@ -156,6 +157,53 @@ pcall(function()
     game.Players.PlayerAdded:Connect(SetupPlayerESP)
 
     -- ========================================================
+    -- GUN ESP
+    -- ========================================================
+    local function TrackGun()
+        task.spawn(function()
+            while task.wait(1) do
+                if not ShowGunESP then 
+                    if Gun_Tag then 
+                        Gun_Tag:Destroy() 
+                        Gun_Tag = nil 
+                    end
+                    continue 
+                end
+                
+                local gunDrop = workspace:FindFirstChild("GunDrop")
+                if gunDrop and gunDrop:FindFirstChild("Handle") and not Gun_Tag then
+                    local bbGui = Instance.new("BillboardGui")
+                    bbGui.Size = UDim2.new(0, 150, 0, 50)
+                    bbGui.Adornee = gunDrop
+                    bbGui.AlwaysOnTop = true
+                    bbGui.MaxDistance = 300
+                    bbGui.StudsOffset = Vector3.new(0, 2, 0)
+                    
+                    local textLabel = Instance.new("TextLabel", bbGui)
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.BackgroundTransparency = 1
+                    textLabel.TextSize = 16
+                    textLabel.Font = Enum.Font.GothamBold
+                    textLabel.TextColor3 = Color3.fromRGB(255, 200, 50)  -- Gold color
+                    textLabel.TextStrokeTransparency = 0.3
+                    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                    textLabel.Text = "SHERIFF GUN"
+                    
+                    bbGui.Parent = gunDrop
+                    Gun_Tag = bbGui
+                    print("[GUN ESP] Gun tracker active")
+                    
+                elseif not gunDrop and Gun_Tag then
+                    pcall(function() Gun_Tag:Destroy() end)
+                    Gun_Tag = nil
+                end
+            end
+        end)
+    end
+
+    TrackGun()
+
+    -- ========================================================
     -- UI LAYOUT
     -- ========================================================
     
@@ -219,6 +267,16 @@ pcall(function()
         end
     })
 
+    VisualTab:CreateSection("Gun ESP")
+
+    VisualTab:CreateToggle({
+        Name = "Show Sheriff Gun",
+        CurrentValue = ShowGunESP,
+        Callback = function(Value)
+            ShowGunESP = Value
+        end
+    })
+
     -- AIMBOT TAB
     AimbotTab:CreateSection("Aimbot Settings")
 
@@ -256,10 +314,10 @@ pcall(function()
     -- NOTIFICATION
     Rayfield:Notify({
         Title = "MM2 Mobile Helper",
-        Content = "ESP Ready! Murderer & Sheriff enabled",
+        Content = "ESP Ready! Murderer & Sheriff enabled + Gun ESP",
         Duration = 3,
     })
 
-    print("✓ MM2 Mobile Helper fully loaded with ESP!")
+    print("✓ MM2 Mobile Helper fully loaded with ESP & Gun ESP!")
 
 end)
