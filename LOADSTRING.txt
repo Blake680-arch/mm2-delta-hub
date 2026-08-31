@@ -1,0 +1,1 @@
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Blake680-arch/mm2-delta-hub/main/mm2_hub.lua'))()
