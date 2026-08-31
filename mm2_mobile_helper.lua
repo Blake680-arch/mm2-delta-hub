@@ -1,24 +1,5 @@
--- MM2 MOBILE HELPER - FULL ESP + AIMBOT SYSTEM
+-- MM2 MOBILE HELPER - PURE ROBLOX UI (NO RAYFIELD)
 pcall(function()
-    local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
-    
-    local Window = Rayfield:CreateWindow({
-        Name = "MM2 Mobile Helper",
-        LoadingTitle = "Loading...",
-        LoadingSubtitle = "Mobile Friendly",
-        ConfigurationSaving = { Enabled = false },
-        KeySystem = false
-    })
-
-    -- TABS
-    local VisualTab = Window:CreateTab("Visual", 4483362458)
-    local AimbotTab = Window:CreateTab("Aimbot", 4483345906)
-    local FarmTab = Window:CreateTab("Auto Farm", 4483362624)
-    local MiscTab = Window:CreateTab("Misc", 4483362752)
-
-    -- ========================================================
-    -- VARIABLES & CONFIG
-    -- ========================================================
     local LocalPlayer = game.Players.LocalPlayer
     local Active_Tags = {}
     local Active_Auras = {}
@@ -28,10 +9,10 @@ pcall(function()
 
     -- ROLE COLORS
     local RoleColors = {
-        Murderer = Color3.fromRGB(255, 50, 50),      -- Bright Red
-        Sheriff = Color3.fromRGB(50, 150, 255),      -- Bright Blue
-        Innocent = Color3.fromRGB(100, 255, 100),    -- Bright Green
-        Guest = Color3.fromRGB(255, 200, 50)         -- Gold/Yellow
+        Murderer = Color3.fromRGB(255, 50, 50),
+        Sheriff = Color3.fromRGB(50, 150, 255),
+        Innocent = Color3.fromRGB(100, 255, 100),
+        Guest = Color3.fromRGB(255, 200, 50)
     }
 
     -- ESP Settings
@@ -50,6 +31,8 @@ pcall(function()
     -- AIMBOT Settings
     local SilentAimEnabled = false
     local ShiftLockEnabled = false
+
+    print("[MM2] Starting setup...")
 
     -- ========================================================
     -- UTILITY FUNCTIONS
@@ -104,11 +87,148 @@ pcall(function()
     end
 
     -- ========================================================
+    -- CREATE GUI
+    -- ========================================================
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "MM2Hub"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 300, 0, 400)
+    mainFrame.Position = UDim2.new(0, 20, 0, 100)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
+    mainFrame.Parent = screenGui
+
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 16
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "MM2 Mobile Helper"
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Parent = mainFrame
+
+    -- Scroll Frame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, -30)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 30)
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 600)
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = mainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Padding = UDim.new(0, 5)
+    UIListLayout.Parent = scrollFrame
+
+    -- ========================================================
+    -- TOGGLE BUTTON CREATOR
+    -- ========================================================
+    local function CreateToggle(parent, name, defaultValue, callback)
+        local toggleFrame = Instance.new("TextButton")
+        toggleFrame.Name = name
+        toggleFrame.Size = UDim2.new(1, -10, 0, 30)
+        toggleFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        toggleFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleFrame.TextSize = 12
+        toggleFrame.Font = Enum.Font.Gotham
+        toggleFrame.BorderSizePixel = 1
+        toggleFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
+        toggleFrame.Parent = parent
+
+        local isEnabled = defaultValue
+        
+        local function UpdateButton()
+            toggleFrame.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(150, 0, 0)
+            toggleFrame.Text = (isEnabled and "✓ " or "✗ ") .. name
+            callback(isEnabled)
+        end
+
+        toggleFrame.MouseButton1Click:Connect(function()
+            isEnabled = not isEnabled
+            UpdateButton()
+        end)
+
+        UpdateButton()
+    end
+
+    -- ========================================================
+    -- CREATE UI SECTIONS
+    -- ========================================================
+
+    -- ESP Section Header
+    local espHeader = Instance.new("TextLabel")
+    espHeader.Name = "ESPHeader"
+    espHeader.Size = UDim2.new(1, -10, 0, 25)
+    espHeader.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+    espHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
+    espHeader.TextSize = 14
+    espHeader.Font = Enum.Font.GothamBold
+    espHeader.Text = "[ ESP Settings ]"
+    espHeader.BorderSizePixel = 0
+    espHeader.Parent = scrollFrame
+
+    -- ESP Toggles
+    CreateToggle(scrollFrame, "ESP Murderer", ESPRoles.Murderer, function(val)
+        ESPRoles.Murderer = val
+    end)
+
+    CreateToggle(scrollFrame, "ESP Sheriff", ESPRoles.Sheriff, function(val)
+        ESPRoles.Sheriff = val
+    end)
+
+    CreateToggle(scrollFrame, "ESP Innocent", ESPRoles.Innocent, function(val)
+        ESPRoles.Innocent = val
+    end)
+
+    CreateToggle(scrollFrame, "Show Nametags", ShowNameTag, function(val)
+        ShowNameTag = val
+    end)
+
+    CreateToggle(scrollFrame, "Show Highlights", ShowHighlight, function(val)
+        ShowHighlight = val
+    end)
+
+    CreateToggle(scrollFrame, "Show Gun ESP", ShowGunESP, function(val)
+        ShowGunESP = val
+    end)
+
+    -- Aimbot Section Header
+    local aimbotHeader = Instance.new("TextLabel")
+    aimbotHeader.Name = "AimbotHeader"
+    aimbotHeader.Size = UDim2.new(1, -10, 0, 25)
+    aimbotHeader.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    aimbotHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
+    aimbotHeader.TextSize = 14
+    aimbotHeader.Font = Enum.Font.GothamBold
+    aimbotHeader.Text = "[ Aimbot Settings ]"
+    aimbotHeader.BorderSizePixel = 0
+    aimbotHeader.Parent = scrollFrame
+
+    -- Aimbot Toggles
+    CreateToggle(scrollFrame, "Silent Aim", SilentAimEnabled, function(val)
+        SilentAimEnabled = val
+    end)
+
+    CreateToggle(scrollFrame, "Shift Lock", ShiftLockEnabled, function(val)
+        ShiftLockEnabled = val
+    end)
+
+    print("[MM2] GUI Created successfully!")
+
+    -- ========================================================
     -- ESP RENDERING
     -- ========================================================
     local function SetupPlayerESP(player)
         if player == LocalPlayer then return end
-        print("[ESP] Setting up ESP for:", player.Name)
         
         local function SetupCharacter(character)
             task.wait(0.3)
@@ -116,13 +236,11 @@ pcall(function()
             if not torso then return end
             
             local role = GetPlayerRole(player)
-            
-            -- CHECK IF ROLE SHOULD BE DISPLAYED
             if not ESPRoles[role] then return end
             
             local roleColor = RoleColors[role]
             
-            -- ===== NAME TAG (Above Torso) =====
+            -- NAME TAG
             if ShowNameTag and not Active_Tags[player] then
                 local bbGui = Instance.new("BillboardGui")
                 bbGui.Size = UDim2.new(0, 150, 0, 40)
@@ -138,53 +256,22 @@ pcall(function()
                 textLabel.Font = Enum.Font.GothamBold
                 textLabel.TextStrokeTransparency = 0.3
                 textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                textLabel.TextColor3 = roleColor
+                textLabel.Text = role
                 
                 bbGui.Parent = torso
                 Active_Tags[player] = bbGui
-                
-                task.spawn(function()
-                    while character and character:IsDescendantOf(workspace) and ShowNameTag do
-                        local currentRole = GetPlayerRole(player)
-                        if ESPRoles[currentRole] then
-                            if ShowUsernames then
-                                textLabel.Text = player.Name
-                            else
-                                textLabel.Text = currentRole
-                            end
-                            textLabel.TextColor3 = RoleColors[currentRole]
-                        end
-                        task.wait(0.5)
-                    end
-                    if Active_Tags[player] then
-                        Active_Tags[player]:Destroy()
-                        Active_Tags[player] = nil
-                    end
-                end)
             end
             
-            -- ===== HIGHLIGHT AURA (No Fill, Just Outline) =====
+            -- HIGHLIGHT AURA
             if ShowHighlight and not Active_Auras[player] then
                 pcall(function()
                     local highlight = Instance.new("Highlight")
-                    highlight.FillTransparency = 1  -- NO FILL
-                    highlight.OutlineTransparency = 0.2  -- AURA ONLY
+                    highlight.FillTransparency = 1
+                    highlight.OutlineTransparency = 0.2
                     highlight.OutlineColor = roleColor
                     highlight.Parent = character
                     Active_Auras[player] = highlight
-                    
-                    task.spawn(function()
-                        while character and character:IsDescendantOf(workspace) and ShowHighlight do
-                            local currentRole = GetPlayerRole(player)
-                            if ESPRoles[currentRole] then
-                                highlight.OutlineColor = RoleColors[currentRole]
-                            end
-                            task.wait(0.5)
-                        end
-                        if Active_Auras[player] then
-                            Active_Auras[player]:Destroy()
-                            Active_Auras[player] = nil
-                        end
-                    end)
                 end)
             end
         end
@@ -193,271 +280,103 @@ pcall(function()
         player.CharacterAdded:Connect(SetupCharacter)
     end
 
-    -- Initialize ESP for existing players
     for _, player in pairs(game.Players:GetPlayers()) do
         SetupPlayerESP(player)
     end
-
-    -- Connect new players
     game.Players.PlayerAdded:Connect(SetupPlayerESP)
 
     -- ========================================================
     -- GUN ESP
     -- ========================================================
-    local function TrackGun()
-        task.spawn(function()
-            while task.wait(1) do
-                if not ShowGunESP then 
-                    if Gun_Tag then 
-                        Gun_Tag:Destroy() 
-                        Gun_Tag = nil 
-                    end
-                    continue 
-                end
-                
-                local gunDrop = workspace:FindFirstChild("GunDrop")
-                if gunDrop and gunDrop:FindFirstChild("Handle") and not Gun_Tag then
-                    local bbGui = Instance.new("BillboardGui")
-                    bbGui.Size = UDim2.new(0, 150, 0, 50)
-                    bbGui.Adornee = gunDrop
-                    bbGui.AlwaysOnTop = true
-                    bbGui.MaxDistance = 300
-                    bbGui.StudsOffset = Vector3.new(0, 2, 0)
-                    
-                    local textLabel = Instance.new("TextLabel", bbGui)
-                    textLabel.Size = UDim2.new(1, 0, 1, 0)
-                    textLabel.BackgroundTransparency = 1
-                    textLabel.TextSize = 16
-                    textLabel.Font = Enum.Font.GothamBold
-                    textLabel.TextColor3 = Color3.fromRGB(255, 200, 50)  -- Gold color
-                    textLabel.TextStrokeTransparency = 0.3
-                    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                    textLabel.Text = "SHERIFF GUN"
-                    
-                    bbGui.Parent = gunDrop
-                    Gun_Tag = bbGui
-                    print("[GUN ESP] Gun tracker active")
-                    
-                elseif not gunDrop and Gun_Tag then
-                    pcall(function() Gun_Tag:Destroy() end)
-                    Gun_Tag = nil
-                end
+    task.spawn(function()
+        while task.wait(1) do
+            if not ShowGunESP then 
+                if Gun_Tag then Gun_Tag:Destroy() Gun_Tag = nil end
+                continue 
             end
-        end)
-    end
-
-    TrackGun()
+            
+            local gunDrop = workspace:FindFirstChild("GunDrop")
+            if gunDrop and gunDrop:FindFirstChild("Handle") and not Gun_Tag then
+                local bbGui = Instance.new("BillboardGui")
+                bbGui.Size = UDim2.new(0, 150, 0, 50)
+                bbGui.Adornee = gunDrop
+                bbGui.AlwaysOnTop = true
+                bbGui.MaxDistance = 300
+                bbGui.StudsOffset = Vector3.new(0, 2, 0)
+                
+                local textLabel = Instance.new("TextLabel", bbGui)
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextSize = 16
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+                textLabel.TextStrokeTransparency = 0.3
+                textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                textLabel.Text = "SHERIFF GUN"
+                
+                bbGui.Parent = gunDrop
+                Gun_Tag = bbGui
+                
+            elseif not gunDrop and Gun_Tag then
+                pcall(function() Gun_Tag:Destroy() end)
+                Gun_Tag = nil
+            end
+        end
+    end)
 
     -- ========================================================
     -- SILENT AIM
     -- ========================================================
-    local function SilentAim()
-        task.spawn(function()
-            while task.wait() do
-                if not SilentAimEnabled then continue end
-                
-                local murderer = GetMurderer()
-                if not murderer or not murderer.Character then continue end
-                
-                local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-                if not murdererHRP then continue end
-                
-                -- Check line of sight
-                if not CanSeeTarget(murdererHRP.Position) then continue end
-                
-                local localChar = LocalPlayer.Character
-                if not localChar or not localChar:FindFirstChild("Humanoid") then continue end
-                
-                local gun = localChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")
-                if not gun then continue end
-                
-                -- Auto-aim: rotate character to face murderer
-                local direction = (murdererHRP.Position - localChar.HumanoidRootPart.Position).Unit
-                localChar.HumanoidRootPart.CFrame = CFrame.new(
-                    localChar.HumanoidRootPart.Position,
-                    localChar.HumanoidRootPart.Position + direction
-                )
-            end
-        end)
-    end
-
-    SilentAim()
+    task.spawn(function()
+        while task.wait() do
+            if not SilentAimEnabled then continue end
+            
+            local murderer = GetMurderer()
+            if not murderer or not murderer.Character then continue end
+            
+            local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+            if not murdererHRP then continue end
+            
+            if not CanSeeTarget(murdererHRP.Position) then continue end
+            
+            local localChar = LocalPlayer.Character
+            if not localChar or not localChar:FindFirstChild("Humanoid") then continue end
+            
+            local gun = localChar:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")
+            if not gun then continue end
+            
+            local direction = (murdererHRP.Position - localChar.HumanoidRootPart.Position).Unit
+            localChar.HumanoidRootPart.CFrame = CFrame.new(
+                localChar.HumanoidRootPart.Position,
+                localChar.HumanoidRootPart.Position + direction
+            )
+        end
+    end)
 
     -- ========================================================
     -- SHIFT LOCK AIMBOT
     -- ========================================================
-    local function ShiftLockAimbot()
-        RunService.RenderStepped:Connect(function()
-            if not ShiftLockEnabled then return end
-            
-            local isShiftPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
-            if not isShiftPressed then return end
-            
-            local murderer = GetMurderer()
-            if not murderer or not murderer.Character then return end
-            
-            local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-            if not murdererHRP then return end
-            
-            local localChar = LocalPlayer.Character
-            if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
-            
-            local camera = workspace.CurrentCamera
-            
-            -- Rotate camera to point at murderer
-            local targetCFrame = CFrame.new(camera.CFrame.Position, murdererHRP.Position)
-            camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.1)  -- Smooth follow
-        end)
-    end
+    RunService.RenderStepped:Connect(function()
+        if not ShiftLockEnabled then return end
+        
+        local isShiftPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+        if not isShiftPressed then return end
+        
+        local murderer = GetMurderer()
+        if not murderer or not murderer.Character then return end
+        
+        local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+        if not murdererHRP then return end
+        
+        local localChar = LocalPlayer.Character
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+        
+        local camera = workspace.CurrentCamera
+        local targetCFrame = CFrame.new(camera.CFrame.Position, murdererHRP.Position)
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.1)
+    end)
 
-    ShiftLockAimbot()
-
-    -- ========================================================
-    -- UI LAYOUT
-    -- ========================================================
-    
-    VisualTab:CreateSection("ESP Target Selection")
-    
-    VisualTab:CreateToggle({
-        Name = "ESP Murderer (Red)",
-        CurrentValue = ESPRoles.Murderer,
-        Callback = function(Value)
-            ESPRoles.Murderer = Value
-        end
-    })
-
-    VisualTab:CreateToggle({
-        Name = "ESP Sheriff (Blue)",
-        CurrentValue = ESPRoles.Sheriff,
-        Callback = function(Value)
-            ESPRoles.Sheriff = Value
-        end
-    })
-
-    VisualTab:CreateToggle({
-        Name = "ESP Innocent (Green)",
-        CurrentValue = ESPRoles.Innocent,
-        Callback = function(Value)
-            ESPRoles.Innocent = Value
-        end
-    })
-
-    VisualTab:CreateToggle({
-        Name = "ESP Guest (Gold)",
-        CurrentValue = ESPRoles.Guest,
-        Callback = function(Value)
-            ESPRoles.Guest = Value
-        end
-    })
-
-    VisualTab:CreateSection("ESP Display Options")
-
-    VisualTab:CreateToggle({
-        Name = "Show Role Nametag",
-        CurrentValue = ShowNameTag,
-        Callback = function(Value)
-            ShowNameTag = Value
-        end
-    })
-
-    VisualTab:CreateToggle({
-        Name = "Show Highlight Aura",
-        CurrentValue = ShowHighlight,
-        Callback = function(Value)
-            ShowHighlight = Value
-        end
-    })
-
-    VisualTab:CreateToggle({
-        Name = "Show Usernames Only",
-        CurrentValue = ShowUsernames,
-        Callback = function(Value)
-            ShowUsernames = Value
-        end
-    })
-
-    VisualTab:CreateSection("Gun ESP")
-
-    VisualTab:CreateToggle({
-        Name = "Show Sheriff Gun",
-        CurrentValue = ShowGunESP,
-        Callback = function(Value)
-            ShowGunESP = Value
-        end
-    })
-
-    -- ========================================================
-    -- AIMBOT TAB
-    -- ========================================================
-    AimbotTab:CreateSection("Silent Aim")
-
-    AimbotTab:CreateToggle({
-        Name = "Enable Silent Aim",
-        CurrentValue = SilentAimEnabled,
-        Callback = function(Value)
-            SilentAimEnabled = Value
-            if Value then
-                Rayfield:Notify({
-                    Title = "Silent Aim",
-                    Content = "Tap to shoot - auto-locks on murderer",
-                    Duration = 2,
-                })
-            end
-        end
-    })
-
-    AimbotTab:CreateLabel("Redirects all shots to murderer")
-    AimbotTab:CreateLabel("Cannot shoot through walls/blocks")
-
-    AimbotTab:CreateSection("Shift Lock Aimbot")
-
-    AimbotTab:CreateToggle({
-        Name = "Enable Shift Lock",
-        CurrentValue = ShiftLockEnabled,
-        Callback = function(Value)
-            ShiftLockEnabled = Value
-            if Value then
-                Rayfield:Notify({
-                    Title = "Shift Lock",
-                    Content = "Hold SHIFT to lock camera on murderer",
-                    Duration = 2,
-                })
-            end
-        end
-    })
-
-    AimbotTab:CreateLabel("Hold LEFT SHIFT to activate")
-    AimbotTab:CreateLabel("Camera follows murderer smoothly")
-
-    -- AUTO FARM TAB
-    FarmTab:CreateSection("Farm Settings")
-
-    local AutoFarmEnabled = false
-    FarmTab:CreateToggle({
-        Name = "Enable Auto Farm",
-        CurrentValue = AutoFarmEnabled,
-        Callback = function(Value)
-            AutoFarmEnabled = Value
-        end
-    })
-
-    -- MISC TAB
-    MiscTab:CreateSection("Utilities")
-
-    MiscTab:CreateButton({
-        Name = "Close GUI",
-        Callback = function()
-            Window:Close()
-        end
-    })
-
-    -- NOTIFICATION
-    Rayfield:Notify({
-        Title = "MM2 Mobile Helper",
-        Content = "Ready! ESP + Aimbot loaded",
-        Duration = 3,
-    })
-
-    print("✓ MM2 Mobile Helper fully loaded with ESP & Aimbot!")
+    print("✓ MM2 Mobile Helper loaded successfully!")
+    print("✓ UI Created - Check top left corner")
 
 end)
